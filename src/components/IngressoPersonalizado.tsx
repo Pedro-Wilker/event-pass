@@ -28,7 +28,7 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
       await document.fonts.load('48px GriffoClassico');
 
       const baseImage = new Image();
-      baseImage.src = '/MOCK.png';
+      baseImage.src = '/MOCK.jpeg';
 
       await new Promise((resolve, reject) => {
         baseImage.onload = resolve;
@@ -43,10 +43,6 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
 
       const centerX = canvas.width / 2;
 
-      // Área branca do mock (janela do selo) começa em ~Y=390 e termina em ~Y=1060.
-      // Nome, ID e QR são encadeados a partir de Y=450, dentro dessa janela.
-
-      // 1. Nome — início da área branca com margem de ~60px
       const fontSizeNome = 48;
       ctx.fillStyle = '#5d3f04';
       ctx.textAlign = 'center';

@@ -29,7 +29,7 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
-  auth?: boolean; 
+  auth?: boolean;
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -63,12 +63,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
 export interface ApiGuest {
   ID: number;
   CreatedAt: string;
   UpdatedAt: string;
   DeletedAt: string | null;
-
   nome: string;
   user_id: number;
   quantidade_acompanhante: number;
@@ -78,7 +80,6 @@ export interface ApiGuest {
   relacoes_acompanhante: string[] | null;
   email_convidado: string;
   numero_convidado: string;
-
   qr_code: string;
   entrada_registrada: boolean;
   data_entrada: string | null;
@@ -104,6 +105,41 @@ export interface CheckinResponse {
 
 export type UserRole = 'client' | 'admin';
 
+// Tipos da rota /api/convidados/por-cliente
+export interface GuestResumido {
+  ID: number;
+  nome: string;
+  qr_code: string;
+  entrada_registrada: boolean;
+  data_entrada: string | null;
+  quantidade_acompanhante: number;
+  nome_acompanhante: string[] | null;
+  relacoes_acompanhante?: string[] | null;
+}
+
+export interface ClienteComConvidados {
+  user_id: number;
+  user_name: string;
+  total: number;
+  convidados: GuestResumido[];
+}
+
+export interface RespostaAdmin {
+  total_clientes: number;
+  total_convidados: number;
+  clientes: ClienteComConvidados[];
+}
+
+export interface RespostaClient {
+  user_id: number;
+  user_name: string;
+  total: number;
+  convidados: GuestResumido[];
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
 export async function login(email: string, password: string): Promise<{ token: string }> {
   return request('/api/login', {
     method: 'POST',
@@ -129,6 +165,9 @@ export async function me(): Promise<{ message: string; user_id: number; role: Us
   return request('/api/me');
 }
 
+// ---------------------------------------------------------------------------
+// Convidados
+// ---------------------------------------------------------------------------
 export async function fetchConvidados(): Promise<ApiGuest[]> {
   const res = await request<{ data: ApiGuest[] }>('/api/convidados');
   return res.data;
@@ -163,7 +202,6 @@ export async function buscarConvidadoPorCodigo(codigo: string): Promise<ApiGuest
 }
 
 export async function registrarEntrada(codigo: string): Promise<CheckinResponse> {
-  
   try {
     return await request<CheckinResponse>('/api/convidados/checkin', {
       method: 'POST',
@@ -179,4 +217,8 @@ export async function registrarEntrada(codigo: string): Promise<CheckinResponse>
     }
     throw err;
   }
+}
+
+export async function fetchConvidadosPorCliente(): Promise<RespostaAdmin | RespostaClient> {
+  return request<RespostaAdmin | RespostaClient>('/api/convidados/por-cliente');
 }
