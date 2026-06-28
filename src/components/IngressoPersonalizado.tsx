@@ -25,16 +25,14 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
     setError(null);
 
     try {
-      
       await document.fonts.load('48px GriffoClassico');
 
       const baseImage = new Image();
-      
-      baseImage.src = '/MOCK.jpeg'; 
-      
+      baseImage.src = '/MOCK.png';
+
       await new Promise((resolve, reject) => {
         baseImage.onload = resolve;
-        baseImage.onerror = () => reject(new Error('Erro ao carregar a imagem de fundo (/MOCK.jpeg) na pasta public'));
+        baseImage.onerror = () => reject(new Error('Erro ao carregar a imagem de fundo (/MOCK.png) na pasta public'));
       });
 
       canvas.width = baseImage.width;
@@ -44,9 +42,11 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
       ctx.drawImage(baseImage, 0, 0);
 
       const centerX = canvas.width / 2;
-      const offsetUp = 100; 
 
-      // 1. Nome
+      // Área branca do mock (janela do selo) começa em ~Y=390 e termina em ~Y=1060.
+      // Nome, ID e QR são encadeados a partir de Y=450, dentro dessa janela.
+
+      // 1. Nome — início da área branca com margem de ~60px
       const fontSizeNome = 48;
       ctx.fillStyle = '#5d3f04';
       ctx.textAlign = 'center';
@@ -54,20 +54,20 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
       ctx.font = `normal normal normal ${fontSizeNome}px GriffoClassico`;
       // @ts-ignore
       ctx.fontVariant = 'small-caps';
-      const nomeY = 535 - offsetUp;
+      const nomeY = 450;
       ctx.fillText(ingresso.nome_convidado, centerX, nomeY, 419);
 
-   
+      // 2. ID — 20px abaixo do nome
       const fontSizeId = 28;
       ctx.font = `normal normal normal ${fontSizeId}px GriffoClassico`;
       // @ts-ignore
       ctx.fontVariant = 'small-caps';
-      const idY = (520 + fontSizeNome + 45) - offsetUp;
+      const idY = nomeY + fontSizeNome + 20;
       ctx.fillText(`ID: ${ingresso.qr_code.split('-')[0]}`, centerX, idY);
 
-      // 3. QR Code
+      // 3. QR Code — 30px abaixo do ID, centralizado horizontalmente
       const qrSize = 377;
-      const qrY = 720 - offsetUp - 10;
+      const qrY = idY + fontSizeId + 30;
       const qrX = centerX - (qrSize / 2);
 
       const svgElement = document.getElementById(`qr-hidden-${ingresso.id}`) as unknown as SVGSVGElement;
@@ -75,10 +75,10 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
         const svgData = new XMLSerializer().serializeToString(svgElement);
         const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
-        
+
         const qrImg = new Image();
         qrImg.src = url;
-        
+
         await new Promise((resolve) => {
           qrImg.onload = () => {
             ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
@@ -107,7 +107,7 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
     const imgData = canvas.toDataURL('image/png');
     const width = canvas.width * 0.264583;
     const height = canvas.height * 0.264583;
-    
+
     const pdf = new jsPDF({
       orientation: width > height ? 'landscape' : 'portrait',
       unit: 'mm',
@@ -138,7 +138,7 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
             <p className="text-sm text-muted-foreground">Gerando visualização...</p>
           </div>
         )}
-        
+
         {error ? (
           <div className="p-8 text-center flex flex-col items-center gap-3">
             <AlertCircle className="w-10 h-10 text-destructive" />
@@ -149,8 +149,8 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
           </div>
         ) : (
           <div className="overflow-auto max-h-[500px] bg-white">
-            <canvas 
-              ref={canvasRef} 
+            <canvas
+              ref={canvasRef}
               className="max-w-full h-auto block mx-auto"
               style={{ display: isGenerating ? 'none' : 'block' }}
             />
