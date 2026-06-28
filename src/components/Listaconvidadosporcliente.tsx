@@ -47,6 +47,20 @@ function guestToIngresso(g: GuestResumido): Ingresso {
   };
 }
 
+// Cria um Ingresso fictício para acompanhante (compartilha o QR do titular)
+function acompanhanteToIngresso(nomeAcomp: string, titular: GuestResumido): Ingresso {
+  return {
+    id: `${String(titular.ID)}-acomp-${nomeAcomp}`,
+    nome_convidado: nomeAcomp,
+    qr_code: titular.qr_code, // compartilha o QR do titular
+    entrada_registrada: titular.entrada_registrada,
+    data_criacao: '',
+    data_entrada: titular.data_entrada,
+    usuario_validador: null,
+    criado_por: null,
+  };
+}
+
 // ──────────────────────────────────────────────
 // Sub-componente: card de um convidado individual
 // ──────────────────────────────────────────────
@@ -55,7 +69,7 @@ function ConvidadoItem({
   onVerQR,
 }: {
   convidado: GuestResumido;
-  onVerQR: (c: GuestResumido) => void;
+  onVerQR: (ingresso: Ingresso) => void;
 }) {
   const nomes: string[] = Array.isArray(convidado.nome_acompanhante)
     ? convidado.nome_acompanhante
@@ -101,11 +115,12 @@ function ConvidadoItem({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* QR do titular */}
           <Button
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-            onClick={() => onVerQR(convidado)}
+            onClick={() => onVerQR(guestToIngresso(convidado))}
             title="Ver Ingresso / QR Code"
           >
             <QrCode className="w-4 h-4" />
@@ -144,10 +159,20 @@ function ConvidadoItem({
               <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
               <span className="truncate">{nome}</span>
               {relacoes[i] && (
-                <Badge variant="outline" className="text-[10px] h-4 ml-auto shrink-0">
+                <Badge variant="outline" className="text-[10px] h-4 shrink-0">
                   {relacoes[i]}
                 </Badge>
               )}
+              {/* Botão QR do acompanhante */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                onClick={() => onVerQR(acompanhanteToIngresso(nome, convidado))}
+                title={`Ver ingresso de ${nome}`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+              </Button>
             </div>
           ))}
         </div>
@@ -166,7 +191,7 @@ function ClienteGroup({
 }: {
   cliente: ClienteComConvidados;
   busca: string;
-  onVerQR: (c: GuestResumido) => void;
+  onVerQR: (ingresso: Ingresso) => void;
 }) {
   const [aberto, setAberto] = useState(true);
 
@@ -225,7 +250,7 @@ export function ListaConvidadosPorCliente() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
-  const [verQR, setVerQR] = useState<GuestResumido | null>(null);
+  const [verQR, setVerQR] = useState<Ingresso | null>(null);
 
   const carregar = async () => {
     setIsLoading(true);
@@ -244,7 +269,6 @@ export function ListaConvidadosPorCliente() {
     carregar();
   }, []);
 
-  // ── Render: loading ──
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
@@ -254,7 +278,6 @@ export function ListaConvidadosPorCliente() {
     );
   }
 
-  // ── Render: erro ──
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-destructive">
@@ -270,6 +293,23 @@ export function ListaConvidadosPorCliente() {
 
   if (!dados) return null;
 
+  // Modal QR — reutilizado nas duas views
+  const modalQR = (
+    <Dialog open={!!verQR} onOpenChange={(open) => !open && setVerQR(null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Ingresso do Convidado</DialogTitle>
+          <DialogDescription>{verQR?.nome_convidado}</DialogDescription>
+        </DialogHeader>
+        {verQR && (
+          <div className="flex flex-col items-center justify-center py-2">
+            <IngressoPersonalizado ingresso={verQR} />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
   // ──────────────────────────────────────────
   // View ADMIN — lista agrupada por cliente
   // ──────────────────────────────────────────
@@ -278,7 +318,6 @@ export function ListaConvidadosPorCliente() {
 
     return (
       <div className="space-y-4">
-        {/* Cabeçalho com totais */}
         <div className="flex items-center justify-between">
           <div className="flex gap-3">
             <Badge variant="outline">{total_clientes} clientes</Badge>
@@ -289,7 +328,6 @@ export function ListaConvidadosPorCliente() {
           </Button>
         </div>
 
-        {/* Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -300,7 +338,6 @@ export function ListaConvidadosPorCliente() {
           />
         </div>
 
-        {/* Lista por cliente */}
         <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4">
           <div className="space-y-4">
             {clientes.length === 0 ? (
@@ -320,20 +357,7 @@ export function ListaConvidadosPorCliente() {
           </div>
         </ScrollArea>
 
-        {/* Modal QR */}
-        <Dialog open={!!verQR} onOpenChange={(open) => !open && setVerQR(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Ingresso do Convidado</DialogTitle>
-              <DialogDescription>{verQR?.nome}</DialogDescription>
-            </DialogHeader>
-            {verQR && (
-              <div className="flex flex-col items-center justify-center py-2">
-                <IngressoPersonalizado ingresso={guestToIngresso(verQR)} />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {modalQR}
       </div>
     );
   }
@@ -348,7 +372,6 @@ export function ListaConvidadosPorCliente() {
 
   return (
     <div className="space-y-4">
-      {/* Cabeçalho com totais */}
       <div className="flex items-center justify-between">
         <Badge variant="outline">{dadosClient.total} convidados</Badge>
         <Button variant="ghost" size="sm" onClick={carregar}>
@@ -356,7 +379,6 @@ export function ListaConvidadosPorCliente() {
         </Button>
       </div>
 
-      {/* Busca */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -367,7 +389,6 @@ export function ListaConvidadosPorCliente() {
         />
       </div>
 
-      {/* Lista plana */}
       <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4">
         <div className="space-y-2">
           {filtrados.length === 0 ? (
@@ -386,20 +407,7 @@ export function ListaConvidadosPorCliente() {
         </div>
       </ScrollArea>
 
-      {/* Modal QR */}
-      <Dialog open={!!verQR} onOpenChange={(open) => !open && setVerQR(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ingresso do Convidado</DialogTitle>
-            <DialogDescription>{verQR?.nome}</DialogDescription>
-          </DialogHeader>
-          {verQR && (
-            <div className="flex flex-col items-center justify-center py-2">
-              <IngressoPersonalizado ingresso={guestToIngresso(verQR)} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {modalQR}
     </div>
   );
 }
