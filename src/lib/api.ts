@@ -114,7 +114,7 @@ export interface GuestResumido {
   data_entrada: string | null;
   quantidade_acompanhante: number;
   nome_acompanhante: string[] | null;
-  relacoes_acompanhante?: string[] | null;
+  relacoes_acompanhante: string[] | null; // ← agora sempre presente
 }
 
 export interface ClienteComConvidados {

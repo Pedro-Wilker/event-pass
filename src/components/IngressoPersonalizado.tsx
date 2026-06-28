@@ -25,7 +25,7 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
     setError(null);
 
     try {
-      await document.fonts.load('48px GriffoClassico');
+      await document.fonts.load('54px GriffoClassico');
 
       const baseImage = new Image();
       baseImage.src = '/MOCK.jpeg';
@@ -43,14 +43,14 @@ export function IngressoPersonalizado({ ingresso }: IngressoPersonalizadoProps) 
 
       const centerX = canvas.width / 2;
 
-      const fontSizeNome = 48;
-      ctx.fillStyle = '#5d3f04';
+      const fontSizeNome = 54;
+      ctx.fillStyle = '#2a1800';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.font = `normal normal normal ${fontSizeNome}px GriffoClassico`;
       // @ts-ignore
       ctx.fontVariant = 'small-caps';
-      const nomeY = 450;
+      const nomeY = 560;
       ctx.fillText(ingresso.nome_convidado, centerX, nomeY, 419);
 
       // 2. ID — 20px abaixo do nome
