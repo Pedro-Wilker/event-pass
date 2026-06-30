@@ -84,6 +84,27 @@ function formatarTelefoneWA(telefone: string): string {
 }
 
 // ──────────────────────────────────────────────
+// Helpers de contagem (titular + acompanhantes)
+// ──────────────────────────────────────────────
+function contarPessoas(c: GuestResumido): number {
+  const acomp = Array.isArray(c.nome_acompanhante)
+    ? c.nome_acompanhante.length
+    : c.quantidade_acompanhante ?? 0;
+  return 1 + acomp;
+}
+
+function totalPessoas(convidados: GuestResumido[]): number {
+  return convidados.reduce((acc, c) => acc + contarPessoas(c), 0);
+}
+
+function presentesPessoas(convidados: GuestResumido[]): number {
+  return convidados.reduce(
+    (acc, c) => acc + (c.entrada_registrada ? contarPessoas(c) : 0),
+    0
+  );
+}
+
+// ──────────────────────────────────────────────
 // Hook: disparo WhatsApp com geração de PDFs
 // ──────────────────────────────────────────────
 function useEnviarWhatsApp() {
@@ -112,7 +133,7 @@ function useEnviarWhatsApp() {
       }
 
       // 3. Monta mensagem
-      const totalPessoas = 1 + nomes.length;
+      const totalPessoasGrupo = 1 + nomes.length;
       const listaAcomp =
         nomes.length > 0
           ? `\n\nAcompanhantes:\n${nomes.map((n) => `• ${n}`).join('\n')}`
@@ -121,7 +142,7 @@ function useEnviarWhatsApp() {
       const mensagem = encodeURIComponent(
         `Olá, *${convidado.nome}*! 🎭\n\n` +
         `Segue(m) seu(s) ingresso(s) para o evento *Cabaré Asteria 70 Anos*.\n` +
-        `Total de ingressos: *${totalPessoas}*${listaAcomp}\n\n` +
+        `Total de ingressos: *${totalPessoasGrupo}*${listaAcomp}\n\n` +
         `Os arquivos PDF foram baixados — anexe-os nesta conversa! 🎟️`
       );
 
@@ -189,7 +210,7 @@ function ConvidadoItem({
             )}
             {temAcompanhantes && (
               <span className="text-[10px] text-muted-foreground">
-                +{nomes.length} acomp.
+                +{nomes.length} acomp. ({contarPessoas(convidado)} pessoas)
               </span>
             )}
           </div>
@@ -311,7 +332,9 @@ function ClienteGroup({
 
   if (busca && filtrados.length === 0) return null;
 
-  const presentes = cliente.convidados.filter((c) => c.entrada_registrada).length;
+  // Contagem por PESSOAS (titular + acompanhantes), não por linha de convidado
+  const presentes = presentesPessoas(cliente.convidados);
+  const total = totalPessoas(cliente.convidados);
 
   return (
     <Collapsible open={aberto} onOpenChange={setAberto}>
@@ -327,7 +350,7 @@ function ClienteGroup({
             <span className="font-semibold text-sm">{cliente.user_name}</span>
           </div>
           <Badge variant="outline" className="text-[10px]">
-            {presentes}/{cliente.total} presentes
+            {presentes}/{total} presentes
           </Badge>
         </div>
       </CollapsibleTrigger>
@@ -353,7 +376,7 @@ function ClienteGroup({
 // Componente principal
 // ──────────────────────────────────────────────
 export function ListaConvidadosPorCliente() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.tipo === 'admin';
 
   const [dados, setDados] = useState<RespostaAdmin | RespostaClient | null>(null);
@@ -378,10 +401,13 @@ export function ListaConvidadosPorCliente() {
   };
 
   useEffect(() => {
-    carregar();
-  }, []);
+    // Só busca os convidados depois que sabemos quem é o usuário (token validado)
+    if (!authLoading && user) {
+      carregar();
+    }
+  }, [authLoading, user]);
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -423,14 +449,24 @@ export function ListaConvidadosPorCliente() {
 
   // ── View ADMIN ──
   if (isAdmin && 'clientes' in dados) {
-    const { clientes, total_clientes, total_convidados } = dados;
+    // dados.clientes pode vir como null do backend quando não há nenhum
+    // convidado cadastrado ainda — sem essa proteção o .reduce() abaixo
+    // quebra durante o render e a tela fica em branco.
+    const clientes = dados.clientes ?? [];
+    const { total_clientes } = dados;
+
+    // Total de PESSOAS real (titulares + acompanhantes) em todos os clientes
+    const totalConvidadosReal = clientes.reduce(
+      (acc, c) => acc + totalPessoas(c.convidados),
+      0
+    );
 
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex gap-3">
             <Badge variant="outline">{total_clientes} clientes</Badge>
-            <Badge variant="outline">{total_convidados} convidados</Badge>
+            <Badge variant="outline">{totalConvidadosReal} convidados</Badge>
           </div>
           <Button variant="ghost" size="sm" onClick={carregar}>
             <RefreshCw className="w-4 h-4" />
@@ -475,14 +511,16 @@ export function ListaConvidadosPorCliente() {
 
   // ── View CLIENT ──
   const dadosClient = dados as RespostaClient;
-  const filtrados = dadosClient.convidados?.filter((c) =>
+  const convidadosClient = dadosClient.convidados ?? [];
+  const filtrados = convidadosClient.filter((c) =>
     c.nome.toLowerCase().includes(busca.toLowerCase())
-  ) ?? [];
+  );
+  const totalClientReal = totalPessoas(convidadosClient);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Badge variant="outline">{dadosClient.total} convidados</Badge>
+        <Badge variant="outline">{totalClientReal} convidados</Badge>
         <Button variant="ghost" size="sm" onClick={carregar}>
           <RefreshCw className="w-4 h-4" />
         </Button>
