@@ -208,9 +208,8 @@ function ConvidadoItem({
 
   const temAcompanhantes = qtdAcomp > 0;
   const temTelefone = !!convidado.numero_convidado;
-  // Abre por padrão quando há nomes válidos — caso mais comum.
-  // Quando só tem contagem (sem nomes), fica fechado até o usuário clicar.
-  const [aberto, setAberto] = useState(nomes.length > 0);
+  // Sempre fechado por padrão — usuário expande/colapsa via chevron.
+  const [aberto, setAberto] = useState(false);
 
   return (
     <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
@@ -306,9 +305,17 @@ function ConvidadoItem({
         </div>
       </div>
 
-      {/* Sub-lista de acompanhantes */}
-      {temAcompanhantes && aberto && (
-        <div className="border-t border-border/30 bg-muted/20 px-3 py-2 space-y-1.5">
+      {/* Sub-lista de acompanhantes — animação leve de expandir/colapsar */}
+      {temAcompanhantes && (
+        <div
+          className={`grid transition-all duration-200 ease-out ${
+            aberto
+              ? 'grid-rows-[1fr] opacity-100'
+              : 'grid-rows-[0fr] opacity-0'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="border-t border-border/30 bg-muted/20 px-3 py-2 space-y-1.5">
           {semNomes ? (
             Array.from({ length: qtdAcomp }).map((_, i) => {
               const placeholder = `Acompanhante ${i + 1}`;
@@ -384,6 +391,8 @@ function ConvidadoItem({
               );
             })
           )}
+            </div>
+          </div>
         </div>
       )}
     </div>
