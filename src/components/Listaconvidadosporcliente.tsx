@@ -213,7 +213,14 @@ function ConvidadoItem({
 
   return (
     <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
-      <div className="flex items-center justify-between p-3">
+      <div
+        className={`flex items-center justify-between p-3 ${
+          temAcompanhantes ? 'cursor-pointer select-none' : ''
+        }`}
+        onClick={() => temAcompanhantes && setAberto((v) => !v)}
+        role={temAcompanhantes ? 'button' : undefined}
+        aria-expanded={temAcompanhantes ? aberto : undefined}
+      >
         <div className="flex flex-col flex-1 min-w-0 mr-2">
           <div className="flex items-center gap-2">
             <UserRound className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -255,7 +262,10 @@ function ConvidadoItem({
                 ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
                 : 'text-muted-foreground/30 cursor-not-allowed'
             }`}
-            onClick={() => temTelefone && onEnviarWhatsApp(convidado)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (temTelefone) onEnviarWhatsApp(convidado);
+            }}
             disabled={enviando || !temTelefone}
             title={
               !temTelefone
@@ -277,7 +287,10 @@ function ConvidadoItem({
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-            onClick={() => onVerQR(guestToIngresso(convidado))}
+            onClick={(e) => {
+              e.stopPropagation();
+              onVerQR(guestToIngresso(convidado));
+            }}
             title="Ver Ingresso / QR Code"
           >
             <QrCode className="w-4 h-4" />
@@ -288,7 +301,10 @@ function ConvidadoItem({
               size="sm"
               variant="ghost"
               className="h-8 w-8 p-0 text-muted-foreground"
-              onClick={() => setAberto((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAberto((v) => !v);
+              }}
               title={aberto ? 'Ocultar acompanhantes' : 'Ver acompanhantes'}
             >
               {aberto ? (
