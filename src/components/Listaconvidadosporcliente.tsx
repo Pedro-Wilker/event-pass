@@ -104,6 +104,24 @@ function presentesPessoas(convidados: GuestResumido[]): number {
   );
 }
 
+// Extrai lista "normalizada" de acompanhantes mesmo quando o backend
+// envia `quantidade_acompanhante > 0` mas `nome_acompanhante` vem
+// null/vazio (observado em respostas para role=client).
+function extrairAcompanhantes(c: GuestResumido): {
+  nomes: string[];
+  relacoes: string[];
+  semNomes: boolean;
+} {
+  const nomes = Array.isArray(c.nome_acompanhante) ? c.nome_acompanhante : [];
+  const relacoes = Array.isArray(c.relacoes_acompanhante)
+    ? c.relacoes_acompanhante
+    : [];
+  const quantidade =
+    nomes.length > 0 ? nomes.length : c.quantidade_acompanhante ?? 0;
+  const semNomes = nomes.length === 0 && quantidade > 0;
+  return { nomes, relacoes, semNomes };
+}
+
 // ──────────────────────────────────────────────
 // Hook: disparo WhatsApp com geração de PDFs
 // ──────────────────────────────────────────────
@@ -173,14 +191,10 @@ function ConvidadoItem({
   onEnviarWhatsApp: (convidado: GuestResumido) => void;
   enviando: boolean;
 }) {
-  const nomes: string[] = Array.isArray(convidado.nome_acompanhante)
-    ? convidado.nome_acompanhante
-    : [];
-  const relacoes: string[] = Array.isArray(convidado.relacoes_acompanhante)
-    ? convidado.relacoes_acompanhante
-    : [];
+  const { nomes, relacoes, semNomes } = extrairAcompanhantes(convidado);
+  const qtdAcomp = nomes.length > 0 ? nomes.length : convidado.quantidade_acompanhante ?? 0;
 
-  const temAcompanhantes = nomes.length > 0;
+  const temAcompanhantes = qtdAcomp > 0;
   const temTelefone = !!convidado.numero_convidado;
   const [aberto, setAberto] = useState(false);
 
@@ -210,7 +224,9 @@ function ConvidadoItem({
             )}
             {temAcompanhantes && (
               <span className="text-[10px] text-muted-foreground">
-                +{nomes.length} acomp. ({contarPessoas(convidado)} pessoas)
+                {semNomes
+                  ? `+${qtdAcomp} acomp. sem nome`
+                  : `+${nomes.length} acomp. (${contarPessoas(convidado)} pessoas)`}
               </span>
             )}
           </div>
@@ -279,29 +295,58 @@ function ConvidadoItem({
       {/* Sub-lista de acompanhantes */}
       {temAcompanhantes && aberto && (
         <div className="border-t border-border/30 bg-muted/20 px-3 py-2 space-y-1.5">
-          {nomes.map((nome, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-              <span className="truncate">{nome}</span>
-              {relacoes[i] && (
-                <Badge variant="outline" className="text-[10px] h-4 shrink-0">
-                  {relacoes[i]}
-                </Badge>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
-                onClick={() => onVerQR(acompanhanteToIngresso(nome, convidado))}
-                title={`Ver ingresso de ${nome}`}
+          {semNomes ? (
+            Array.from({ length: qtdAcomp }).map((_, i) => {
+              const placeholder = `Acompanhante ${i + 1}`;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                  <span className="truncate italic">{placeholder}</span>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    (nome não cadastrado)
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                    onClick={() =>
+                      onVerQR(acompanhanteToIngresso(placeholder, convidado))
+                    }
+                    title={`Ver ingresso de ${placeholder}`}
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              );
+            })
+          ) : (
+            nomes.map((nome, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
               >
-                <QrCode className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
+                <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                <span className="truncate">{nome}</span>
+                {relacoes[i] && (
+                  <Badge variant="outline" className="text-[10px] h-4 shrink-0">
+                    {relacoes[i]}
+                  </Badge>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                  onClick={() => onVerQR(acompanhanteToIngresso(nome, convidado))}
+                  title={`Ver ingresso de ${nome}`}
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

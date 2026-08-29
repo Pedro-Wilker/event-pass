@@ -6,6 +6,12 @@ import { Ticket, LogOut } from 'lucide-react';
 
 export type ActiveTab = 'criar' | 'validar' | 'lista';
 
+// TODO(client8): remover quando o cliente Geisa & Rangel deixar de usar o app
+// de portaria. Escopo provisório: user_id === 8 não opera check-in no evento,
+// apenas gerencia a própria lista de convidados. Demais clients e admins
+// permanecem com a tab "Validar Ingresso" visível.
+const CLIENT_ID_WITHOUT_VALIDATE_TAB = 8;
+
 interface HeaderProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
@@ -17,6 +23,7 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
   if (!user) return null;
 
   const isAdmin = user.tipo === 'admin';
+  const hideValidarTab = user.id === CLIENT_ID_WITHOUT_VALIDATE_TAB;
 
   return (
     <header className="bg-card/80 backdrop-blur-sm border-b border-border sticky top-0 z-50">
@@ -52,13 +59,15 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
             >
               Lista de Convidados
             </Button>
-            <Button
-              variant={activeTab === 'validar' ? 'default' : 'ghost'}
-              onClick={() => onTabChange('validar')}
-              size="sm"
-            >
-              Validar Ingresso
-            </Button>
+            {!hideValidarTab && (
+              <Button
+                variant={activeTab === 'validar' ? 'default' : 'ghost'}
+                onClick={() => onTabChange('validar')}
+                size="sm"
+              >
+                Validar Ingresso
+              </Button>
+            )}
           </nav>
 
           {/* Role badge + logout */}
@@ -92,14 +101,16 @@ export function Header({ activeTab, onTabChange }: HeaderProps) {
           >
             Lista
           </Button>
-          <Button
-            variant={activeTab === 'validar' ? 'default' : 'ghost'}
-            onClick={() => onTabChange('validar')}
-            size="sm"
-            className="flex-1"
-          >
-            Validar
-          </Button>
+          {!hideValidarTab && (
+            <Button
+              variant={activeTab === 'validar' ? 'default' : 'ghost'}
+              onClick={() => onTabChange('validar')}
+              size="sm"
+              className="flex-1"
+            >
+              Validar
+            </Button>
+          )}
         </nav>
       </div>
     </header>
