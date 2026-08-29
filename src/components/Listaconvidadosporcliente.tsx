@@ -106,20 +106,32 @@ function presentesPessoas(convidados: GuestResumido[]): number {
 
 // Extrai lista "normalizada" de acompanhantes mesmo quando o backend
 // envia `quantidade_acompanhante > 0` mas `nome_acompanhante` vem
-// null/vazio (observado em respostas para role=client).
+// null/vazio (observado em respostas para role=client) ou com
+// strings vazias (cadastros legados).
 function extrairAcompanhantes(c: GuestResumido): {
   nomes: string[];
   relacoes: string[];
   semNomes: boolean;
 } {
-  const nomes = Array.isArray(c.nome_acompanhante) ? c.nome_acompanhante : [];
-  const relacoes = Array.isArray(c.relacoes_acompanhante)
+  const nomesBrutos = Array.isArray(c.nome_acompanhante)
+    ? c.nome_acompanhante
+    : [];
+  const relacoesBrutas = Array.isArray(c.relacoes_acompanhante)
     ? c.relacoes_acompanhante
     : [];
+
+  const nomesValidos = nomesBrutos.filter((n) => typeof n === 'string' && n.trim() !== '');
+  const relacoes = relacoesBrutas.filter((r) => typeof r === 'string' && r.trim() !== '');
+
   const quantidade =
-    nomes.length > 0 ? nomes.length : c.quantidade_acompanhante ?? 0;
-  const semNomes = nomes.length === 0 && quantidade > 0;
-  return { nomes, relacoes, semNomes };
+    nomesValidos.length > 0
+      ? nomesValidos.length
+      : c.quantidade_acompanhante ?? 0;
+
+  // semNomes = tem quantidade > 0 mas nenhum nome válido cadastrado
+  const semNomes = nomesValidos.length === 0 && quantidade > 0;
+
+  return { nomes: nomesValidos, relacoes, semNomes };
 }
 
 // ──────────────────────────────────────────────
@@ -196,7 +208,9 @@ function ConvidadoItem({
 
   const temAcompanhantes = qtdAcomp > 0;
   const temTelefone = !!convidado.numero_convidado;
-  const [aberto, setAberto] = useState(false);
+  // Abre por padrão quando há nomes válidos — caso mais comum.
+  // Quando só tem contagem (sem nomes), fica fechado até o usuário clicar.
+  const [aberto, setAberto] = useState(nomes.length > 0);
 
   return (
     <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
@@ -323,29 +337,52 @@ function ConvidadoItem({
               );
             })
           ) : (
-            nomes.map((nome, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                <span className="truncate">{nome}</span>
-                {relacoes[i] && (
-                  <Badge variant="outline" className="text-[10px] h-4 shrink-0">
-                    {relacoes[i]}
-                  </Badge>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
-                  onClick={() => onVerQR(acompanhanteToIngresso(nome, convidado))}
-                  title={`Ver ingresso de ${nome}`}
+            Array.from({ length: qtdAcomp }).map((_, i) => {
+              const nome = nomes[i];
+              const relacao = relacoes[i];
+              const placeholder = `Acompanhante ${i + 1}`;
+              const semNome = !nome;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
                 >
-                  <QrCode className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))
+                  <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                  {semNome ? (
+                    <>
+                      <span className="truncate italic">{placeholder}</span>
+                      <span className="text-[10px] text-muted-foreground/70">
+                        (nome não cadastrado)
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="truncate">{nome}</span>
+                      {relacao && (
+                        <Badge variant="outline" className="text-[10px] h-4 shrink-0">
+                          {relacao}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                    onClick={() =>
+                      onVerQR(
+                        semNome
+                          ? acompanhanteToIngresso(placeholder, convidado)
+                          : acompanhanteToIngresso(nome!, convidado)
+                      )
+                    }
+                    title={`Ver ingresso de ${semNome ? placeholder : nome}`}
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              );
+            })
           )}
         </div>
       )}
