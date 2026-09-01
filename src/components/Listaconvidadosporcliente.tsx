@@ -585,7 +585,7 @@ export function ListaConvidadosPorCliente() {
     );
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 w-full max-w-5xl">
         <div className="flex items-center justify-between">
           <div className="flex gap-3">
             <Badge variant="outline">{total_clientes} clientes</Badge>
