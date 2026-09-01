@@ -479,7 +479,7 @@ function ClienteGroup({
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="mt-2 ml-4 space-y-2">
+        <div className="mt-2 sm:ml-4 space-y-2 min-w-0">
           {filtrados.map((convidado) => (
             <ConvidadoItem
               key={convidado.ID}
@@ -606,7 +606,7 @@ export function ListaConvidadosPorCliente() {
           />
         </div>
 
-        <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0 overflow-hidden">
+        <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0">
           <div className="space-y-4">
             {clientes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
@@ -659,7 +659,7 @@ export function ListaConvidadosPorCliente() {
         />
       </div>
 
-      <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0 overflow-hidden">
+      <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0">
         <div className="space-y-2">
           {filtrados.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
