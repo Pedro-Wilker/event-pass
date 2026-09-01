@@ -224,7 +224,7 @@ function ConvidadoItem({
   return (
     <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
       <div
-        className={`flex items-center justify-between p-3 ${
+        className={`flex items-center justify-between gap-2 p-3 min-w-0 ${
           temAcompanhantes ? 'cursor-pointer select-none' : ''
         }`}
         onClick={() => temAcompanhantes && setAberto((v) => !v)}
@@ -262,7 +262,7 @@ function ConvidadoItem({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Botão WhatsApp */}
           <Button
             size="sm"
@@ -343,14 +343,14 @@ function ConvidadoItem({
           }`}
         >
           <div className="overflow-hidden">
-            <div className="border-t border-border/30 bg-muted/20 px-3 py-2 space-y-1.5">
+            <div className="border-t border-border/30 bg-muted/20 px-3 py-2 space-y-1.5 min-w-0">
           {semNomes ? (
             Array.from({ length: qtdAcomp }).map((_, i) => {
               const placeholder = `Acompanhante ${i + 1}`;
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
+                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground min-w-0"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
                   <span className="truncate italic">{placeholder}</span>
@@ -382,7 +382,7 @@ function ConvidadoItem({
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground"
+                  className="flex items-center gap-2 pl-4 text-sm text-muted-foreground min-w-0"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
                   {semNome ? (
@@ -606,7 +606,7 @@ export function ListaConvidadosPorCliente() {
           />
         </div>
 
-        <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4">
+        <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0 overflow-hidden">
           <div className="space-y-4">
             {clientes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
@@ -659,7 +659,7 @@ export function ListaConvidadosPorCliente() {
         />
       </div>
 
-      <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4">
+      <ScrollArea className="h-[500px] rounded-md border border-border/50 bg-card/50 p-4 min-w-0 overflow-hidden">
         <div className="space-y-2">
           {filtrados.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
