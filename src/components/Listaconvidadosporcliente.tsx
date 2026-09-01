@@ -641,7 +641,7 @@ export function ListaConvidadosPorCliente() {
   const totalClientReal = totalPessoas(convidadosClient);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-5xl">
       <div className="flex items-center justify-between">
         <Badge variant="outline">{totalClientReal} convidados</Badge>
         <Button variant="ghost" size="sm" onClick={carregar}>
