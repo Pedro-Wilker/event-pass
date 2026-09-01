@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/collapsible';
 import { IngressoPersonalizado } from './IngressoPersonalizado';
 import { gerarEBaixarPDF } from '../lib/Gerarpdfingresso';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Search,
   Users,
@@ -82,6 +83,12 @@ function formatarTelefoneWA(telefone: string): string {
   if (digits.startsWith('55') && digits.length >= 12) return digits;
   return `55${digits}`;
 }
+
+// TODO(client8): remover quando o cliente Geisa & Rangel deixar de usar o app
+// de portaria. Escopo provisório: user_id === 8 não opera check-in no evento,
+// apenas gerencia a própria lista via WhatsApp. Demais clients e admins
+// permanecem com botões de QR Code visíveis na lista.
+const CLIENT_ID_WITHOUT_QR_ACTIONS = 8;
 
 // ──────────────────────────────────────────────
 // Helpers de contagem (titular + acompanhantes)
@@ -203,6 +210,9 @@ function ConvidadoItem({
   onEnviarWhatsApp: (convidado: GuestResumido) => void;
   enviando: boolean;
 }) {
+  const { user } = useAuth();
+  const hideQrActions = user?.id === CLIENT_ID_WITHOUT_QR_ACTIONS;
+
   const { nomes, relacoes, semNomes } = extrairAcompanhantes(convidado);
   const qtdAcomp = nomes.length > 0 ? nomes.length : convidado.quantidade_acompanhante ?? 0;
 
@@ -283,18 +293,20 @@ function ConvidadoItem({
           </Button>
 
           {/* Botão QR do titular */}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onVerQR(guestToIngresso(convidado));
-            }}
-            title="Ver Ingresso / QR Code"
-          >
-            <QrCode className="w-4 h-4" />
-          </Button>
+          {!hideQrActions && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onVerQR(guestToIngresso(convidado));
+              }}
+              title="Ver Ingresso / QR Code"
+            >
+              <QrCode className="w-4 h-4" />
+            </Button>
+          )}
 
           {temAcompanhantes && (
             <Button
@@ -345,17 +357,19 @@ function ConvidadoItem({
                   <span className="text-[10px] text-muted-foreground/70">
                     (nome não cadastrado)
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
-                    onClick={() =>
-                      onVerQR(acompanhanteToIngresso(placeholder, convidado))
-                    }
-                    title={`Ver ingresso de ${placeholder}`}
-                  >
-                    <QrCode className="w-3.5 h-3.5" />
-                  </Button>
+                  {!hideQrActions && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                      onClick={() =>
+                        onVerQR(acompanhanteToIngresso(placeholder, convidado))
+                      }
+                      title={`Ver ingresso de ${placeholder}`}
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               );
             })
@@ -388,21 +402,23 @@ function ConvidadoItem({
                       )}
                     </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
-                    onClick={() =>
-                      onVerQR(
-                        semNome
-                          ? acompanhanteToIngresso(placeholder, convidado)
-                          : acompanhanteToIngresso(nome!, convidado)
-                      )
-                    }
-                    title={`Ver ingresso de ${semNome ? placeholder : nome}`}
-                  >
-                    <QrCode className="w-3.5 h-3.5" />
-                  </Button>
+                  {!hideQrActions && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 ml-auto text-muted-foreground hover:text-primary shrink-0"
+                      onClick={() =>
+                        onVerQR(
+                          semNome
+                            ? acompanhanteToIngresso(placeholder, convidado)
+                            : acompanhanteToIngresso(nome!, convidado)
+                        )
+                      }
+                      title={`Ver ingresso de ${semNome ? placeholder : nome}`}
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               );
             })
