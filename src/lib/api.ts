@@ -205,21 +205,58 @@ export async function buscarConvidadoPorCodigo(codigo: string): Promise<ApiGuest
 }
 
 export async function registrarEntrada(codigo: string): Promise<CheckinResponse> {
-  // Remove qualquer whitespace interno/edge que possa ter sido inserido pelo
-  // scanner (espaços, \r, \n, \t) — esses caracteres invisíveis quebram a
-  // busca exata no banco mesmo que o QR "pareça" o mesmo visualmente.
+  // Remove whitespace invisível (espaços, \r, \n, \t) que o scanner pode
+  // injetar e que quebraria a busca exata no banco.
   const codigoLimpo = codigo.replace(/\s+/g, '').trim();
 
-  // Enviamos `qr_code` E `codigo` no body pra cobrir ambas as convenções
-  // que o backend pode estar usando. O backend ignora silenciosamente os
-  // campos extras; ele pega o que parser dele reconhece.
-  console.log('[registrarEntrada] codigo enviado:', JSON.stringify({ qr_code: codigoLimpo, codigo: codigoLimpo }));
+  // Gera variantes do código pra cobrir formatos que o backend pode usar:
+  // - com hífens (formato UUID retornado pela API e codificado no QR)
+  // - sem hífens (caso o backend armazene/compare em formato compacto)
+  const variantes = Array.from(
+    new Set([codigoLimpo, codigoLimpo.replace(/-/g, '')])
+  ).filter(Boolean);
 
-  try {
-    return await request<CheckinResponse>('/api/convidados/checkin', {
-      method: 'POST',
-      body: { qr_code: codigoLimpo, codigo: codigoLimpo },
-    });
+  console.log('[registrarEntrada] tentando variantes:', variantes);
+
+  let ultimoResultado: CheckinResponse | null = null;
+
+  for (const variante of variantes) {
+    try {
+      const resultado = await request<CheckinResponse>('/api/convidados/checkin', {
+        method: 'POST',
+        body: { qr_code: variante, codigo: variante },
+      });
+      // Sucesso (valido/duplicado) — retorna imediatamente.
+      if (resultado.status !== 'invalido') return resultado;
+      ultimoResultado = resultado;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 404 || err.status === 409)) {
+        // 404 → tenta próxima variante. 409 → conflito (já entrou), retorna.
+        if (err.status === 409) {
+          return {
+            status: 'duplicado',
+            mensagem: err.message,
+            data: err.payload?.data,
+          };
+        }
+        ultimoResultado = {
+          status: 'invalido',
+          mensagem: err.message,
+          data: err.payload?.data,
+        };
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  return (
+    ultimoResultado ?? {
+      status: 'invalido',
+      mensagem: 'Código não encontrado em nenhuma variante testada.',
+    }
+  );
+}
   } catch (err) {
     if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
       return {
