@@ -5,20 +5,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IngressoCard } from '@/components/IngressoCard';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function CriarIngresso() {
   const [nomeConvidado, setNomeConvidado] = useState('');
+  const [acompanhantes, setAcompanhantes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [ingressoCriado, setIngressoCriado] = useState<Ingresso | null>(null);
   const { criarIngresso } = useIngressos();
   const { toast } = useToast();
 
+  const adicionarAcompanhante = () => {
+    if (acompanhantes.length >= 10) {
+      toast({
+        title: 'Limite atingido',
+        description: 'Máximo de 10 acompanhantes por convite.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setAcompanhantes((prev) => [...prev, '']);
+  };
+
+  const removerAcompanhante = (idx: number) => {
+    setAcompanhantes((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const atualizarAcompanhante = (idx: number, value: string) => {
+    setAcompanhantes((prev) => prev.map((n, i) => (i === idx ? value : n)));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!nomeConvidado.trim()) {
+
+    const titular = nomeConvidado.trim();
+    if (!titular) {
       toast({
         title: 'Campo obrigatório',
         description: 'Digite o nome do convidado.',
@@ -30,13 +52,19 @@ export function CriarIngresso() {
     setIsLoading(true);
 
     try {
-      const ingresso = await criarIngresso(nomeConvidado.trim());
+      const nomesFiltrados = acompanhantes.map((n) => n.trim()).filter((n) => n.length > 0);
+      const ingresso = await criarIngresso(titular, nomesFiltrados);
       if (ingresso) {
         setIngressoCriado(ingresso);
         setNomeConvidado('');
+        setAcompanhantes([]);
+        const total = nomesFiltrados.length;
         toast({
           title: 'Ingresso criado!',
-          description: `Ingresso para ${ingresso.nome_convidado} gerado com sucesso.`,
+          description:
+            total > 0
+              ? `Ingresso para ${ingresso.nome_convidado} + ${total} acompanhante${total > 1 ? 's' : ''} gerado.`
+              : `Ingresso para ${ingresso.nome_convidado} gerado com sucesso.`,
         });
       }
     } catch (error) {
@@ -71,13 +99,13 @@ export function CriarIngresso() {
             Criar Novo Ingresso
           </CardTitle>
           <CardDescription>
-            Preencha os dados para gerar um novo ingresso com QR Code
+            Cada ingresso (titular e cada acompanhante) ganha QR Code único e de uso único.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="nome">Nome do Convidado</Label>
+              <Label htmlFor="nome">Nome do Convidado (titular)</Label>
               <Input
                 id="nome"
                 type="text"
@@ -89,6 +117,45 @@ export function CriarIngresso() {
                 autoFocus
               />
             </div>
+
+            {acompanhantes.length > 0 && (
+              <div className="space-y-3 border-t border-border/50 pt-4">
+                <Label className="text-sm text-muted-foreground">Acompanhantes</Label>
+                {acompanhantes.map((nome, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={nome}
+                      onChange={(e) => atualizarAcompanhante(idx, e.target.value)}
+                      placeholder={`Nome do acompanhante ${idx + 1}`}
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removerAcompanhante(idx)}
+                      disabled={isLoading}
+                      aria-label="Remover acompanhante"
+                    >
+                      <Trash2 className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={adicionarAcompanhante}
+              disabled={isLoading || acompanhantes.length >= 10}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Adicionar acompanhante
+            </Button>
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>

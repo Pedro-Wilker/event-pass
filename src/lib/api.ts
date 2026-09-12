@@ -90,6 +90,9 @@ export interface CreateGuestInput {
   nome: string;
   quantidade_acompanhante?: number;
   nome_acompanhante?: string[];
+  // qr_codes sintéticos por acompanhante (uso único), gerados no frontend
+  // via FNV-1a de (titular.qr_code + nomeAcomp). Persistidos como JSONB.
+  companion_qr_codes?: string[];
   email_convidado?: string;
   numero_convidado?: string;
   emails_acompanhantes?: string[];

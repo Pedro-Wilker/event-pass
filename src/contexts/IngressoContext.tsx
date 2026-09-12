@@ -2,11 +2,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import {
   fetchConvidados,
   criarConvidado,
+  atualizarConvidado,
   registrarEntrada,
   buscarConvidadoPorCodigo,
   type ApiGuest,
   type CreateGuestInput,
 } from '@/lib/api';
+import { gerarCompanionQRCodes } from '@/lib/qr';
 import { useAuth } from './AuthContext';
 
 export interface Ingresso {
@@ -30,7 +32,7 @@ export interface ResultadoValidacao {
 
 interface IngressoContextType {
   ingressos: Ingresso[];
-  criarIngresso: (nomeConvidado: string) => Promise<Ingresso | null>;
+  criarIngresso: (nomeConvidado: string, acompanhantes?: string[]) => Promise<Ingresso | null>;
   validarIngresso: (codigo: string) => Promise<ResultadoValidacao>;
   buscarIngresso: (codigo: string) => Promise<Ingresso | null>;
   refreshIngressos: () => Promise<void>;
@@ -68,16 +70,38 @@ export function IngressoProvider({ children }: { children: ReactNode }) {
     if (user) refreshIngressos();
   }, [user]);
 
-  const criarIngresso = async (nomeConvidado: string): Promise<Ingresso | null> => {
+  const criarIngresso = async (nomeConvidado: string, acompanhantes?: string[]): Promise<Ingresso | null> => {
     if (!user || user.tipo !== 'admin') {
       throw new Error('Apenas administradores podem criar ingressos.');
     }
 
-    const input: CreateGuestInput = { nome: nomeConvidado };
-    const guest = await criarConvidado(input);
+    // cria o titular primeiro (sem qr, backend gera via uuid.NewString())
+    const titularInput: CreateGuestInput = { nome: nomeConvidado };
+    const titular = await criarConvidado(titularInput);
+    const titularIngresso = guestToIngresso(titular);
+
+    // titular criado: agora gera qr_code único pra cada acompanhante
+    // usando o qr_code recém-retornado (mantém formato UUID; FNV-1a
+    // substitui só o 1º segmento). Esses códigos já vão como array
+    // numa 2ª chamada de criação? NÃO — backend atual não suporta
+    // criar titular + acompanhantes no mesmo POST. Workaround:
+    // o titular já veio com qr_code; backend só persiste os códigos
+    // sintéticos SE vierem no mesmo input. Como aqui o titular já foi
+    // criado, precisamos ATUALIZÁ-lo via PUT/convidados/:id com os
+    // companion_qr_codes gerados a partir do qr_code dele.
+    const nomesAcomp = (acompanhantes ?? []).filter((n) => n.trim().length > 0);
+    if (nomesAcomp.length > 0) {
+      const companionCodes = gerarCompanionQRCodes(titularIngresso.qr_code, nomesAcomp);
+      await atualizarConvidado(titular.ID, {
+        nome: titularIngresso.nome_convidado,
+        quantidade_acompanhante: nomesAcomp.length,
+        nome_acompanhante: nomesAcomp,
+        companion_qr_codes: companionCodes,
+      });
+    }
 
     await refreshIngressos();
-    return guestToIngresso(guest);
+    return titularIngresso;
   };
 
   const validarIngresso = async (codigo: string): Promise<ResultadoValidacao> => {
