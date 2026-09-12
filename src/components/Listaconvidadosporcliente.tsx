@@ -478,7 +478,7 @@ function ClienteGroup({
         </div>
       </CollapsibleTrigger>
 
-      <CollapsibleContent>
+      <CollapsibleContent className="min-w-0 overflow-hidden">
         <div className="mt-2 sm:ml-4 space-y-2 min-w-0">
           {filtrados.map((convidado) => (
             <ConvidadoItem
