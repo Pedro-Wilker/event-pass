@@ -232,7 +232,7 @@ function ConvidadoItem({
         aria-expanded={temAcompanhantes ? aberto : undefined}
       >
         <div className="flex flex-col flex-1 min-w-0 mr-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <UserRound className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="font-medium text-sm truncate">{convidado.nome}</span>
           </div>
@@ -585,7 +585,7 @@ export function ListaConvidadosPorCliente() {
     );
 
     return (
-      <div className="space-y-4 w-full max-w-5xl">
+      <div className="space-y-4 w-full max-w-7xl">
         <div className="flex items-center justify-between">
           <div className="flex gap-3">
             <Badge variant="outline">{total_clientes} clientes</Badge>
@@ -641,7 +641,7 @@ export function ListaConvidadosPorCliente() {
   const totalClientReal = totalPessoas(convidadosClient);
 
   return (
-    <div className="space-y-4 w-full max-w-5xl">
+    <div className="space-y-4 w-full max-w-7xl">
       <div className="flex items-center justify-between">
         <Badge variant="outline">{totalClientReal} convidados</Badge>
         <Button variant="ghost" size="sm" onClick={carregar}>
