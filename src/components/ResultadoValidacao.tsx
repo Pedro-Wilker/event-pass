@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, AlertTriangle, User, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, User, Clock, Users } from 'lucide-react';
 import type { ResultadoValidacao as ResultadoType } from '@/contexts/IngressoContext';
 
 interface ResultadoValidacaoProps {
@@ -10,7 +10,7 @@ interface ResultadoValidacaoProps {
 }
 
 export function ResultadoValidacao({ resultado, onNovo }: ResultadoValidacaoProps) {
-  const { status, ingresso, mensagem } = resultado;
+  const { status, ingresso, mensagem, companion } = resultado;
 
   const config = {
     valido: {
@@ -54,10 +54,18 @@ export function ResultadoValidacao({ resultado, onNovo }: ResultadoValidacaoProp
           <div className="space-y-3 text-left bg-background/50 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Convidado:</span>
+              <span className="text-sm text-muted-foreground">Titular:</span>
               <span className="font-medium">{ingresso.nome_convidado}</span>
             </div>
-            
+
+            {companion?.name && (
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Acompanhante:</span>
+                <span className="font-medium">{companion.name}</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Criado em:</span>

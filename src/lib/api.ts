@@ -104,6 +104,7 @@ export interface CheckinResponse {
   status: 'valido' | 'duplicado' | 'invalido';
   mensagem: string;
   data?: ApiGuest;
+  companion?: { name: string; index: number };
 }
 
 export type UserRole = 'client' | 'admin';
@@ -217,6 +218,7 @@ export async function registrarEntrada(codigo: string): Promise<CheckinResponse>
         status: err.status === 409 ? 'duplicado' : 'invalido',
         mensagem: err.message,
         data: err.payload?.data,
+        companion: err.payload?.companion,
       };
     }
     throw err;

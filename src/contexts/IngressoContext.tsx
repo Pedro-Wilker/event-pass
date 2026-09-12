@@ -28,6 +28,7 @@ export interface ResultadoValidacao {
   status: ValidacaoStatus;
   ingresso?: Ingresso;
   mensagem: string;
+  companion?: { name: string; index: number };
 }
 
 interface IngressoContextType {
@@ -120,6 +121,7 @@ export function IngressoProvider({ children }: { children: ReactNode }) {
       status: resultado.status,
       ingresso: resultado.data ? guestToIngresso(resultado.data) : undefined,
       mensagem: resultado.mensagem,
+      companion: resultado.companion,
     };
   };
 
