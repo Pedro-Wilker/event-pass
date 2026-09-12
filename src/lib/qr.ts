@@ -26,8 +26,11 @@ export function gerarQrUnicoAcompanhante(qrCodeTitular: string, nomeAcomp: strin
 }
 
 // Helper para gerar array de companion_qr_codes a partir dos nomes.
+// Hash canonico sobre o nome COMO SALVO no banco (whitespace preservado).
+// PDFs antigos foram gerados sem .trim() antes do FNV-1a — nao trima aqui
+// senao novos QRs deixam de bater com QRs antigos ja emitidos.
 export function gerarCompanionQRCodes(qrCodeTitular: string, nomesAcompanhantes: string[]): string[] {
   return nomesAcompanhantes
     .filter((n) => n.trim().length > 0)
-    .map((n) => gerarQrUnicoAcompanhante(qrCodeTitular, n.trim()));
+    .map((n) => gerarQrUnicoAcompanhante(qrCodeTitular, n));
 }
