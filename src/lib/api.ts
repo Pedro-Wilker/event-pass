@@ -257,17 +257,6 @@ export async function registrarEntrada(codigo: string): Promise<CheckinResponse>
     }
   );
 }
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-      return {
-        status: err.status === 409 ? 'duplicado' : 'invalido',
-        mensagem: err.message,
-        data: err.payload?.data,
-      };
-    }
-    throw err;
-  }
-}
 
 export async function fetchConvidadosPorCliente(): Promise<RespostaAdmin | RespostaClient> {
   return request<RespostaAdmin | RespostaClient>('/api/convidados/por-cliente');
