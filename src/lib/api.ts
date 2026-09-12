@@ -198,15 +198,27 @@ export async function deletarConvidado(id: number): Promise<void> {
 }
 
 export async function buscarConvidadoPorCodigo(codigo: string): Promise<ApiGuest> {
-  const res = await request<{ data: ApiGuest }>(`/api/convidados/buscar/${codigo}`);
+  const res = await request<{ data: ApiGuest }>(
+    `/api/convidados/buscar/${encodeURIComponent(codigo)}`
+  );
   return res.data;
 }
 
 export async function registrarEntrada(codigo: string): Promise<CheckinResponse> {
+  // Remove qualquer whitespace interno/edge que possa ter sido inserido pelo
+  // scanner (espaços, \r, \n, \t) — esses caracteres invisíveis quebram a
+  // busca exata no banco mesmo que o QR "pareça" o mesmo visualmente.
+  const codigoLimpo = codigo.replace(/\s+/g, '').trim();
+
+  // Enviamos `qr_code` E `codigo` no body pra cobrir ambas as convenções
+  // que o backend pode estar usando. O backend ignora silenciosamente os
+  // campos extras; ele pega o que parser dele reconhece.
+  console.log('[registrarEntrada] codigo enviado:', JSON.stringify({ qr_code: codigoLimpo, codigo: codigoLimpo }));
+
   try {
     return await request<CheckinResponse>('/api/convidados/checkin', {
       method: 'POST',
-      body: { codigo },
+      body: { qr_code: codigoLimpo, codigo: codigoLimpo },
     });
   } catch (err) {
     if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
