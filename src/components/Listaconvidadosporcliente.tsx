@@ -66,23 +66,52 @@ function guestToIngresso(g: GuestResumido): Ingresso {
 }
 
 function acompanhanteToIngresso(nomeAcomp: string, titular: GuestResumido): Ingresso {
-  // IMPORTANTE: qr_code do acompanhante é o MESMO do titular.
-  // O backend (api-eventos/guestController.go findGuestByCode) só conhece
-  // qr_code por linha TITULAR — checkin é por titular. Acompanhantes não têm
-  // qr_code próprio na tabela `guests` (ficam como JSON array de nomes).
-  // Gerar qr_code único aqui quebraria a validação (backend retornaria 404).
-  // A diferenciação visual entre PDFs de acompanhantes fica por conta do campo
-  // `nome_convidado` (já é único) e do `id` (já é único: `${titular.ID}-acomp-${nome}`).
+  // Cada acompanhante precisa de qr_code ÚNICO (não pode ser igual ao do
+  // titular nem ao dos outros acompanhantes) porque cada PDF é de uso
+  // único e exclusivo: ao validar um, ele não pode mais ser reutilizado.
+  // Geramos via hash determinístico (FNV-1a) de (qrCodeTitular + nomeAcomp)
+  // — assim, re-gerar o PDF pro mesmo titular produz o MESMO QR (idempotente).
+  //
+  // NOTA: o backend atual (api-eventos/guestController.go findGuestByCode)
+  // só reconhece o qr_code do TITULAR. Pra validação individual de cada
+  // acompanhante funcionar end-to-end, o backend precisa:
+  //   1. Persistir um qr_code por acompanhante (coluna JSON na tabela `guests`
+  //      OU tabela `guest_acompanhantes` com coluna qr_code).
+  //   2. Atualizar findGuestByCode pra buscar também nesses qrs.
+  //   3. Atualizar CheckinGuest pra registrar entrada do titular E marcar o
+  //      acompanhante específico como presente.
+  // Até lá, validação de PDFs de acompanhantes retorna 404.
   return {
     id: `${String(titular.ID)}-acomp-${nomeAcomp}`,
     nome_convidado: nomeAcomp,
-    qr_code: titular.qr_code,
+    qr_code: gerarQrUnicoAcompanhante(titular.qr_code, nomeAcomp),
     entrada_registrada: titular.entrada_registrada,
     data_criacao: '',
     data_entrada: titular.data_entrada,
     usuario_validador: null,
     criado_por: null,
   };
+}
+
+// Gera um qr_code único por acompanhante, mantendo o formato UUID
+// (8-4-4-4-12). Só substitui o primeiro segmento (8 chars — o "id"
+// visível no ticket) por hash determinístico; segmentos 2-5 preservados.
+function gerarQrUnicoAcompanhante(qrCodeTitular: string, nomeAcomp: string): string {
+  const partes = qrCodeTitular.split('-');
+  if (partes.length !== 5) return qrCodeTitular; // fallback seguro
+
+  const novoId = fnv1a32(`${qrCodeTitular}|${nomeAcomp}`);
+  return [novoId, partes[1], partes[2], partes[3], partes[4]].join('-');
+}
+
+// Hash FNV-1a 32-bit → 8 hex chars. Determinístico e sync.
+function fnv1a32(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function formatarTelefoneWA(telefone: string): string {
