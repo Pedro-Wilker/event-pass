@@ -31,7 +31,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
         {activeTab === 'criar' && isAdmin && <CriarIngresso />}
         {activeTab === 'lista' && <ListaConvidadosPorCliente />}
         {activeTab === 'validar' && <ValidarIngresso />}
