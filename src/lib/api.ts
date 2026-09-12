@@ -198,64 +198,26 @@ export async function deletarConvidado(id: number): Promise<void> {
 }
 
 export async function buscarConvidadoPorCodigo(codigo: string): Promise<ApiGuest> {
-  const res = await request<{ data: ApiGuest }>(
-    `/api/convidados/buscar/${encodeURIComponent(codigo)}`
-  );
+  const res = await request<{ data: ApiGuest }>(`/api/convidados/buscar/${codigo}`);
   return res.data;
 }
 
 export async function registrarEntrada(codigo: string): Promise<CheckinResponse> {
-  // Remove whitespace invisível (espaços, \r, \n, \t) que o scanner pode
-  // injetar e que quebraria a busca exata no banco.
-  const codigoLimpo = codigo.replace(/\s+/g, '').trim();
-
-  // Gera variantes do código pra cobrir formatos que o backend pode usar:
-  // - com hífens (formato UUID retornado pela API e codificado no QR)
-  // - sem hífens (caso o backend armazene/compare em formato compacto)
-  const variantes = Array.from(
-    new Set([codigoLimpo, codigoLimpo.replace(/-/g, '')])
-  ).filter(Boolean);
-
-  console.log('[registrarEntrada] tentando variantes:', variantes);
-
-  let ultimoResultado: CheckinResponse | null = null;
-
-  for (const variante of variantes) {
-    try {
-      const resultado = await request<CheckinResponse>('/api/convidados/checkin', {
-        method: 'POST',
-        body: { qr_code: variante, codigo: variante },
-      });
-      // Sucesso (valido/duplicado) — retorna imediatamente.
-      if (resultado.status !== 'invalido') return resultado;
-      ultimoResultado = resultado;
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 404 || err.status === 409)) {
-        // 404 → tenta próxima variante. 409 → conflito (já entrou), retorna.
-        if (err.status === 409) {
-          return {
-            status: 'duplicado',
-            mensagem: err.message,
-            data: err.payload?.data,
-          };
-        }
-        ultimoResultado = {
-          status: 'invalido',
-          mensagem: err.message,
-          data: err.payload?.data,
-        };
-        continue;
-      }
-      throw err;
+  try {
+    return await request<CheckinResponse>('/api/convidados/checkin', {
+      method: 'POST',
+      body: { codigo },
+    });
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
+      return {
+        status: err.status === 409 ? 'duplicado' : 'invalido',
+        mensagem: err.message,
+        data: err.payload?.data,
+      };
     }
+    throw err;
   }
-
-  return (
-    ultimoResultado ?? {
-      status: 'invalido',
-      mensagem: 'Código não encontrado em nenhuma variante testada.',
-    }
-  );
 }
 
 export async function fetchConvidadosPorCliente(): Promise<RespostaAdmin | RespostaClient> {
