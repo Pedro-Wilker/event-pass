@@ -69,13 +69,38 @@ function acompanhanteToIngresso(nomeAcomp: string, titular: GuestResumido): Ingr
   return {
     id: `${String(titular.ID)}-acomp-${nomeAcomp}`,
     nome_convidado: nomeAcomp,
-    qr_code: titular.qr_code,
+    qr_code: gerarQrUnicoAcompanhante(titular.qr_code, nomeAcomp),
     entrada_registrada: titular.entrada_registrada,
     data_criacao: '',
     data_entrada: titular.data_entrada,
     usuario_validador: null,
     criado_por: null,
   };
+}
+
+// Gera um qr_code único por acompanhante, mantendo o formato UUID
+// (8-4-4-4-12). O primeiro segmento (8 chars) — que é o "id" lido pelo
+// staff no ticket — vira um hash determinístico de (qrCodeTitular + nomeAcomp).
+// Assim cada acompanhante tem QR distinto do titular e dos outros acompanhantes,
+// e a geração é idempotente (re-gerar PDF produz mesmo QR).
+function gerarQrUnicoAcompanhante(qrCodeTitular: string, nomeAcomp: string): string {
+  const partes = qrCodeTitular.split('-');
+  // Só re-monta se for UUID 5-segmentos. Senão mantém valor original
+  // (fallback de segurança — não gera QR inválido).
+  if (partes.length !== 5) return qrCodeTitular;
+
+  const novoId = fnv1a32(`${qrCodeTitular}|${nomeAcomp}`);
+  return [novoId, partes[1], partes[2], partes[3], partes[4]].join('-');
+}
+
+// Hash FNV-1a 32-bit → 8 hex chars. Determinístico e sync.
+function fnv1a32(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function formatarTelefoneWA(telefone: string): string {
