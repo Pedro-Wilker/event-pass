@@ -236,7 +236,7 @@ function ConvidadoItem({
             <UserRound className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="font-medium text-sm truncate">{convidado.nome}</span>
           </div>
-          <div className="flex items-center gap-2 mt-1 ml-6">
+          <div className="flex items-center gap-2 mt-1 ml-6 min-w-0 flex-wrap">
             <Badge
               variant={convidado.entrada_registrada ? 'secondary' : 'outline'}
               className="text-[10px] h-5"
@@ -253,7 +253,7 @@ function ConvidadoItem({
               </span>
             )}
             {temAcompanhantes && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground truncate min-w-0">
                 {semNomes
                   ? `+${qtdAcomp} acomp. sem nome`
                   : `+${nomes.length} acomp. (${contarPessoas(convidado)} pessoas)`}
